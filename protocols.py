@@ -22,7 +22,7 @@ class RECEIVE:
         
         while True:
             data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
-            return data
+            return str(data)
 
 if __name__ == "__main__":
     if input("s mi r mi \n") == "s":
