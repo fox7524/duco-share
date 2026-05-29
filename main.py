@@ -6,7 +6,7 @@ from encryption import Encryption
 from protocols import SEND
 from protocols import RECEIVE
 
-UDP_IP = "10.51.139.17"
+UDP_IP = "100.78.253.13"
 MESSAGE = b"kayrayi seviyorum"
 password = 42
 channel = input("kanal seçiminizi yapın amk: ")
