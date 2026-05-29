@@ -15,7 +15,7 @@ class SEND:
         sock.sendto(MESSAGE, (UDP_IP, UDP_PORT))
 
 class RECEIVE:
-    def rec(self, UDP_IP, UDP_PORT, MESSAGE):
+    def rec(self, UDP_IP, UDP_PORT):
         sock = socket.socket(socket.AF_INET, # Internet
                              socket.SOCK_DGRAM) # UDP
         sock.bind((UDP_IP, UDP_PORT))
@@ -28,4 +28,4 @@ if __name__ == "__main__":
     if input("s mi r mi \n") == "s":
         print(SEND(UDP_IP, UDP_PORT, MESSAGE))
     else:
-        print(RECEIVE(UDP_IP, UDP_PORT, MESSAGE))
+        print(RECEIVE(UDP_IP, UDP_PORT))

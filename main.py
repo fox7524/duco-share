@@ -21,4 +21,4 @@ if input("s mi r mi: ") == "s":
         MESSAGE = input_.encode()
         print(SEND().send(UDP_IP, UDP_PORT, MESSAGE))
 else:
-    print(RECEIVE().rec(UDP_IP, UDP_PORT, MESSAGE))
+    print(RECEIVE().rec(UDP_IP, UDP_PORT))
