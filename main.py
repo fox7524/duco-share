@@ -9,6 +9,7 @@ from protocols import RECEIVE
 
 ahmet = "100.78.253.13"
 fox = "100.72.83.78"
+UDP_IP = fox
 # MESSAGE = b"kayrayi seviyorum"
 password = 42
 channel = input("kanal seçiminizi yapın amk: ")
@@ -25,5 +26,7 @@ if input("s mi r mi: ") == "s":
         MESSAGE = input_.encode()
         print(SEND().send(UDP_IP, UDP_PORT, MESSAGE))
 else:
+    ip = input("ahmet mi kayra mı \n")
+    UDP_IP = ahmet if ip == "ahmet" else fox
     while 1:
         print(RECEIVE().rec(UDP_IP, UDP_PORT))
