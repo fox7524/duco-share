@@ -5,7 +5,7 @@ import socket
 # will be added to main.py
 
 class SEND:
-    def __init__(self, UDP_IP, UDP_PORT, MESSAGE): # sends the dedicated message to the dedicated ip and port
+    def send(self, UDP_IP, UDP_PORT, MESSAGE): # sends the dedicated message to the dedicated ip and port
         # print("UDP target IP: %s" % UDP_IP)
         # print("UDP target port: %s" % UDP_PORT)
         # print("message: %s" % MESSAGE)
@@ -15,7 +15,7 @@ class SEND:
         sock.sendto(MESSAGE, (UDP_IP, UDP_PORT))
 
 class RECEIVE:
-    def __init__(self, UDP_IP, UDP_PORT, MESSAGE):
+    def rec(self, UDP_IP, UDP_PORT, MESSAGE):
         sock = socket.socket(socket.AF_INET, # Internet
                              socket.SOCK_DGRAM) # UDP
         sock.bind((UDP_IP, UDP_PORT))
