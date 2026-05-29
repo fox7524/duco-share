@@ -1,0 +1,6 @@
+{
+  "peers": [
+    { "name": "balikesir", "host": "balikesir-pc" },
+    { "name": "umraniye", "host": "umraniye-pc" }
+  ]
+}
