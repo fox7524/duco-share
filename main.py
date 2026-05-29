@@ -1,5 +1,9 @@
+import threading
+import sys
+import socket
 from decryption import Decryption
 from encryption import Encryption
+<<<<<<< Updated upstream
 from protocols import SEND
 from protocols import RECEIVE
 
@@ -8,8 +12,4 @@ MESSAGE = b"kayrayi seviyorum"
 password = 42
 channel = input("kanal seçiminizi yapın amk: ")
 UDP_PORT = channel
-
-# print(SEND(UDP_IP, UDP_PORT, MESSAGE))
-# print(RECEIVE(UDP_IP, UDP_PORT, MESSAGE)) examples for sending and receiving data
-
 
