@@ -1,0 +1,2 @@
+from nigger import nig
+
