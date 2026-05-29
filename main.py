@@ -6,7 +6,9 @@ from encryption import Encryption
 from protocols import SEND
 from protocols import RECEIVE
 
-UDP_IP = "100.78.253.13"
+
+ahmet = "100.78.253.13"
+fox = "100.72.83.78"
 # MESSAGE = b"kayrayi seviyorum"
 password = 42
 channel = input("kanal seçiminizi yapın amk: ")
@@ -17,6 +19,8 @@ UDP_PORT = int(channel)
 
 if input("s mi r mi: ") == "s":
     while 1:
+        ip = input("ahmet mi kayra mı \n")
+        UDP_IP = ahmet if ip == "ahmet" else fox
         input_ = input("söyle hacı \n")
         MESSAGE = input_.encode()
         print(SEND().send(UDP_IP, UDP_PORT, MESSAGE))
