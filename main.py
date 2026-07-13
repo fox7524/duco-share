@@ -1,41 +1,55 @@
 import json
 import threading
 import time
+import os
+import datetime
 from udp import listen, send_to, broadcast_discovery
 from crypto import pack_message, unpack_message
-from udp import listen, send_to
 
+# Renk Kodları (UX)
+C_BLUE = '\033[94m'
+C_GREEN = '\033[92m'
+C_CYAN = '\033[96m'
+C_YELLOW = '\033[93m'
+C_RESET = '\033[0m'
+C_BOLD = '\033[1m'
 
 UDP_BIND = "0.0.0.0"
 BASE_PORT = 5000
+DISCOVERY_PORT = 5001
+dynamic_peers = {} # Ağda bulduğumuz kişileri burada tutacağız
 
+def clear_screen():
+    os.system('cls' if os.name == 'nt' else 'clear')
 
-def load_peers(path: str = "peers.json"):
-    with open(path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    peers = data.get("peers", [])
-    out = []
-    for p in peers:
-        name = str(p.get("name", "")).strip()
-        host = str(p.get("host", "")).strip()
-        if name and host:
-            out.append({"name": name, "host": host})
-    return out
+def print_logo():
+    logo = f"""{C_CYAN}{C_BOLD}
+  _____  _    _  _____  ____  ______ _______  __
+ |  __ \| |  | |/ ____|/ __ \|  ____|  ____|\ \/ /
+ | |  | | |  | | |    | |  | | |__  | |__    \  / 
+ | |  | | |  | | |    | |  | |  __| |  __|   /  \ 
+ | |__| | |__| | |____| |__| | |    | |____ / /\ \\
+ |_____/ \____/ \_____|\____/|_|    |______/_/  \_\\
+{C_RESET}
+    """
+    print(logo)
 
+def get_timestamp():
+    return datetime.datetime.now().strftime("%H:%M:%S")
 
 def listener_thread(port: int, passphrase: str):
     def on_packet(data, addr):
         try:
             sender, pt = unpack_message(data, passphrase)
             msg = pt.decode("utf-8", errors="replace")
-            print(f"\n{sender}: {msg}")
+            ts = get_timestamp()
+            # \r ile mevcut satırı (prompt'u) silip, mesajı yazıp, yeni prompt ekliyoruz
+            print(f"\r{C_YELLOW}[{ts}]{C_RESET} {C_BLUE}{C_BOLD}{sender}:{C_RESET} {msg}")
+            print(f"{C_GREEN}>{C_RESET} ", end="", flush=True)
         except Exception:
             return
 
     listen(UDP_BIND, port, on_packet)
-
-DISCOVERY_PORT = 5001
-dynamic_peers = {} # Ağda bulduğumuz kişileri burada tutacağız: { "192.168.1.15": {"nick": "fox", "kanal": 5} }
 
 def discovery_listener_thread():
     def on_discovery(data, addr):
@@ -51,67 +65,77 @@ def discovery_listener_thread():
                     # Eğer bu IP bizde yoksa listeye ekle ve ekrana yaz!
                     if ip_address not in dynamic_peers:
                         dynamic_peers[ip_address] = {"nick": peer_nick, "kanal": peer_kanal}
-                        print(f"\n[+] Yeni biri katildi: {peer_nick} (IP: {ip_address}, Kanal: {peer_kanal})")
-                        print("> ", end="", flush=True) # prompt'u düzeltmek için
+                        print(f"\r{C_GREEN}[+] Yeni biri katildi: {peer_nick} (IP: {ip_address}, Kanal: {peer_kanal}){C_RESET}")
+                        print(f"{C_GREEN}>{C_RESET} ", end="", flush=True)
         except Exception:
             pass
 
-    # 5001 portundan tüm gelen keşif mesajlarını dinle
     listen("0.0.0.0", DISCOVERY_PORT, on_discovery)
 
+def heartbeat_thread(nick: str, kanal: str):
+    # Sorunu çözen kısım: Her 3 saniyede bir ağa kendimizi hatırlatıyoruz
+    discovery_msg = f"DISCOVER:{nick}:{kanal}".encode("utf-8")
+    while True:
+        try:
+            broadcast_discovery(DISCOVERY_PORT, discovery_msg)
+        except Exception:
+            pass
+        time.sleep(3)
+
 def main():
-    nick = input("nick: ").strip()
+    clear_screen()
+    print_logo()
+    
+    print(f"{C_YELLOW}DUCOFEX P2P Terminal Chat'e Hos Geldiniz!{C_RESET}\n")
+    
+    nick = input(f"{C_GREEN}nick:{C_RESET} ").strip()
     if not nick:
         nick = "anon"
 
-    kanal = input("kanal: ").strip()
+    kanal = input(f"{C_GREEN}kanal:{C_RESET} ").strip()
     if not kanal.isdigit():
-        print("kanal sayi olmali")
+        print(f"{C_YELLOW}kanal sayi olmali{C_RESET}")
         return
 
     port = BASE_PORT + int(kanal)
-    passphrase = input("sifre: ").strip()
+    passphrase = input(f"{C_GREEN}sifre:{C_RESET} ").strip()
     if not passphrase:
-        print("sifre bos olamaz")
+        print(f"{C_YELLOW}sifre bos olamaz{C_RESET}")
         return
 
-        # 1. Başkalarını duymak için Discovery Listener'ı başlatıyoruz
+    # 1. Başkalarını duymak için Discovery Listener'ı başlatıyoruz
     dt = threading.Thread(target=discovery_listener_thread, daemon=True)
     dt.start()
 
-    # 2. Kendimizi ağa duyuruyoruz (Örn: "DISCOVER:fox:5")
-    # Bunu uygulamanın başında 1 kez yapıyoruz
-    discovery_msg = f"DISCOVER:{nick}:{kanal}".encode("utf-8")
-    try:
-        broadcast_discovery(DISCOVERY_PORT, discovery_msg)
-    except Exception as e:
-        print(f"Broadcast yapilamadi: {e}")
+    # 2. Kendimizi periyodik olarak ağa duyuruyoruz (Heartbeat)
+    ht = threading.Thread(target=heartbeat_thread, args=(nick, kanal), daemon=True)
+    ht.start()
 
+    # 3. Mesaj dinleyici thread'i başlatıyoruz
     t = threading.Thread(target=listener_thread, args=(port, passphrase), daemon=True)
     t.start()
 
-    print(f"dinleniyor: {UDP_BIND}:{port}")
-    print("cikmak icin: /quit")
+    print(f"\n{C_CYAN}dinleniyor: {UDP_BIND}:{port}{C_RESET}")
+    print(f"{C_CYAN}cikmak icin: /quit{C_RESET}\n")
 
     while True:
-        msg = input("> ")
+        msg = input(f"{C_GREEN}>{C_RESET} ")
         if msg.strip() == "/quit":
             return
         if not msg.strip():
             continue
 
         payload = pack_message(nick, msg.encode("utf-8"), passphrase)
-                # dynamic_peers sözlüğündeki IP adreslerine gönderiyoruz
+        
+        # dynamic_peers sözlüğündeki IP adreslerine gönderiyoruz
         for ip, peer_info in dynamic_peers.items():
             try:
-                # peer_info["kanal"] değerini int'e çevirip BASE_PORT'a ekliyoruz
                 target_port = BASE_PORT + int(peer_info["kanal"])
                 send_to(ip, target_port, payload)
             except Exception:
                 continue
 
         time.sleep(0.01)
-
 
 if __name__ == "__main__":
     main()
