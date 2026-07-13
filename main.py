@@ -5,6 +5,7 @@ import os
 import datetime
 from udp import listen, send_to, broadcast_discovery
 from crypto import pack_message, unpack_message
+from bluetooth_core import BluetoothManager
 
 # Renk Kodları (UX)
 C_BLUE = '\033[94m'
@@ -44,8 +45,9 @@ def listener_thread(port: int, passphrase: str):
             msg = pt.decode("utf-8", errors="replace")
             ts = get_timestamp()
             # \r ile mevcut satırı (prompt'u) silip, mesajı yazıp, yeni prompt ekliyoruz
-            print(f"\r{C_YELLOW}[{ts}]{C_RESET} {C_BLUE}{C_BOLD}{sender}:{C_RESET} {msg}")
-            print(f"{C_GREEN}>{C_RESET} ", end="", flush=True)
+            # Terminaldeki ">" işaretinin çift basılmaması için "\033[2K" (satırı temizle) kullanıyoruz
+            print(f"\033[2K\r{C_YELLOW}[{ts}]{C_RESET} {C_BLUE}{C_BOLD}{sender}:{C_RESET} {msg}")
+            # print(f"{C_GREEN}>{C_RESET} ", end="", flush=True) # <-- BU SATIRI DA KALDIRDIK
         except Exception:
             return
 
@@ -66,7 +68,7 @@ def discovery_listener_thread():
                     if ip_address not in dynamic_peers:
                         dynamic_peers[ip_address] = {"nick": peer_nick, "kanal": peer_kanal}
                         print(f"\r{C_GREEN}[+] Yeni biri katildi: {peer_nick} (IP: {ip_address}, Kanal: {peer_kanal}){C_RESET}")
-                        print(f"{C_GREEN}>{C_RESET} ", end="", flush=True)
+                        # print(f"{C_GREEN}>{C_RESET} ", end="", flush=True)  # <-- BU SATIRI KALDIRDIK
         except Exception:
             pass
 
@@ -111,6 +113,21 @@ def main():
     ht = threading.Thread(target=heartbeat_thread, args=(nick, kanal), daemon=True)
     ht.start()
 
+    # BLE Entegrasyonu
+    # Gelen BLE mesajlarını UDP'deki on_packet gibi işleyebilmesi için callback oluşturuyoruz
+    def ble_on_packet_wrapper(data, addr):
+        try:
+            sender, pt = unpack_message(data, passphrase)
+            msg = pt.decode("utf-8", errors="replace")
+            ts = get_timestamp()
+            print(f"\033[2K\r{C_YELLOW}[{ts}]{C_RESET} {C_BLUE}{C_BOLD}{sender} (BLE):{C_RESET} {msg}")
+            print(f"{C_GREEN}>{C_RESET} ", end="", flush=True)
+        except Exception:
+            return
+
+    ble_manager = BluetoothManager(nick, kanal, dynamic_peers, ble_on_packet_wrapper)
+    ble_manager.start()
+
     # 3. Mesaj dinleyici thread'i başlatıyoruz
     t = threading.Thread(target=listener_thread, args=(port, passphrase), daemon=True)
     t.start()
@@ -127,11 +144,16 @@ def main():
 
         payload = pack_message(nick, msg.encode("utf-8"), passphrase)
         
-        # dynamic_peers sözlüğündeki IP adreslerine gönderiyoruz
-        for ip, peer_info in dynamic_peers.items():
+        # dynamic_peers sözlüğündeki IP/MAC adreslerine gönderiyoruz
+        for peer_id, peer_info in dynamic_peers.items():
             try:
-                target_port = BASE_PORT + int(peer_info["kanal"])
-                send_to(ip, target_port, payload)
+                if peer_info.get("type") == "ble":
+                    # Bluetooth üzerinden gönder (Asenkron köprü üzerinden)
+                    ble_manager.send_message(peer_id, payload)
+                else:
+                    # UDP üzerinden gönder
+                    target_port = BASE_PORT + int(peer_info["kanal"])
+                    send_to(peer_id, target_port, payload)
             except Exception:
                 continue
 
