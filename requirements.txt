@@ -1,0 +1,31 @@
+# DUCOFEX P2P Terminal Chat Dependencies
+# Cross-Platform (macOS, Linux, Windows)
+
+# ----------------------------------------
+# Bluetooth (BLE) Dependencies
+# ----------------------------------------
+# Bleak: Asenkron Bluetooth Low Energy istemcisi (Tarama ve bağlanma için)
+bleak>=3.0.0
+
+# Bless: Asenkron Bluetooth Low Energy sunucusu (Kendi cihazımızı yayınlamak için)
+bless>=0.3.0
+
+# ----------------------------------------
+# Crypto Dependencies
+# ----------------------------------------
+# Cryptography: AES-GCM şifrelemesi için
+cryptography>=41.0.0
+
+# ----------------------------------------
+# Not: Standart Python Kütüphaneleri
+# ----------------------------------------
+# Aşağıdaki kütüphaneler Python ile birlikte kurulu gelir,
+# pip ile yüklenmelerine gerek yoktur:
+# - json
+# - threading
+# - time
+# - os
+# - datetime
+# - socket
+# - asyncio
+# - base64
