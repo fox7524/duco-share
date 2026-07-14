@@ -41,29 +41,34 @@ class BluetoothManager:
             self.on_message_callback(bytes(value), ("BLE_Peer", 0))
 
     async def _run_server(self):
-        server_name = f"DUCO_{self.nick}"
-        self.server = BlessServer(name=server_name)
+        try:
+            server_name = f"DUCO_{self.nick}"
+            self.server = BlessServer(name=server_name)
 
-        # Karakteristiğe yazma tetikleyicisini ekliyoruz
-        self.server.write_request_func = self.write_request_handler
+            # Karakteristiğe yazma tetikleyicisini ekliyoruz
+            self.server.write_request_func = self.write_request_handler
 
-        char_flags = (
-            GATTCharacteristicProperties.write |
-            GATTCharacteristicProperties.write_without_response
-        )
-        permissions = GATTAttributePermissions.writeable
+            char_flags = (
+                GATTCharacteristicProperties.write |
+                GATTCharacteristicProperties.write_without_response
+            )
+            permissions = GATTAttributePermissions.writeable
 
-        await self.server.add_new_service(DUCOFEX_SERVICE_UUID)
-        await self.server.add_new_characteristic(
-            DUCOFEX_SERVICE_UUID,
-            CHAT_CHAR_UUID,
-            char_flags,
-            None,
-            permissions
-        )
+            await self.server.add_new_service(DUCOFEX_SERVICE_UUID)
+            await self.server.add_new_characteristic(
+                DUCOFEX_SERVICE_UUID,
+                CHAT_CHAR_UUID,
+                char_flags,
+                None,
+                permissions
+            )
 
-        await self.server.start()
-        # print(f"[BLE] GATT Sunucu baslatildi: {server_name}")
+            await self.server.start()
+            # print(f"[BLE] GATT Sunucu baslatildi: {server_name}")
+        except Exception as e:
+            # Linux'ta dbus veya adaptör bulanamadığında KeyError vb. hatalar verebilir.
+            # Uygulamanın çökmemesi için sessizce yakalıyoruz.
+            pass
 
     async def _run_scanner(self):
         """Etraftaki DUCOFEX BLE cihazlarını sürekli arar."""
